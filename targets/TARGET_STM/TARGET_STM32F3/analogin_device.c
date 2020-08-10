@@ -72,20 +72,24 @@ static void _analogin_init_direct(analogin_t *obj, const PinMap *pinmap)
 
     // Configure ADC object structures
     obj->handle.State = HAL_ADC_STATE_RESET;
-    obj->handle.Init.ClockPrescaler        = ADC_CLOCK_SYNC_PCLK_DIV2;
-    obj->handle.Init.Resolution            = ADC_RESOLUTION_12B;
     obj->handle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
     obj->handle.Init.ScanConvMode          = DISABLE;
-    obj->handle.Init.EOCSelection          = ADC_EOC_SINGLE_CONV;
-    obj->handle.Init.LowPowerAutoWait      = DISABLE;
     obj->handle.Init.ContinuousConvMode    = DISABLE;
     obj->handle.Init.NbrOfConversion       = 1;
     obj->handle.Init.DiscontinuousConvMode = DISABLE;
     obj->handle.Init.NbrOfDiscConversion   = 0;
+#if defined(STM32F373xC)
+    obj->handle.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T2_CC2;
+#else
     obj->handle.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T1_CC1;
+    obj->handle.Init.ClockPrescaler        = ADC_CLOCK_SYNC_PCLK_DIV2;
+    obj->handle.Init.Resolution            = ADC_RESOLUTION_12B;
+    obj->handle.Init.EOCSelection          = ADC_EOC_SINGLE_CONV;
+    obj->handle.Init.LowPowerAutoWait      = DISABLE;
     obj->handle.Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE;
     obj->handle.Init.DMAContinuousRequests = DISABLE;
     obj->handle.Init.Overrun               = ADC_OVR_DATA_OVERWRITTEN;
+#endif
 
 #if defined(ADC1)
     if ((ADCName)obj->handle.Instance == ADC_1) {
@@ -112,9 +116,13 @@ static void _analogin_init_direct(analogin_t *obj, const PinMap *pinmap)
         error("Cannot initialize ADC\n");
     }
 
+#if defined(STM32F373xC)
+    HAL_ADCEx_Calibration_Start(&obj->handle);
+#else
     if (!HAL_ADCEx_Calibration_GetValue(&obj->handle, ADC_SINGLE_ENDED)) {
         HAL_ADCEx_Calibration_Start(&obj->handle, ADC_SINGLE_ENDED);
     }
+#endif
 }
 
 void analogin_init(analogin_t *obj, PinName pin)
@@ -141,10 +149,14 @@ uint16_t adc_read(analogin_t *obj)
 
     // Configure ADC channel
     sConfig.Rank         = ADC_REGULAR_RANK_1;
+#if defined(STM32F373xC)
+    sConfig.SamplingTime = ADC_SAMPLETIME_41CYCLES_5;
+#else
     sConfig.SamplingTime = ADC_SAMPLETIME_19CYCLES_5;
     sConfig.SingleDiff   = ADC_SINGLE_ENDED;
     sConfig.OffsetNumber = ADC_OFFSET_NONE;
     sConfig.Offset       = 0;
+#endif
 
     switch (obj->channel) {
         case 1:
@@ -189,6 +201,22 @@ uint16_t adc_read(analogin_t *obj)
         case 14:
             sConfig.Channel = ADC_CHANNEL_14;
             break;
+#if defined(STM32F373xC)
+        case 15:
+            sConfig.Channel = ADC_CHANNEL_15;
+            break;
+        case 16:
+            sConfig.Channel = ADC_CHANNEL_16;
+            break;
+        case 17:
+            sConfig.SamplingTime = ADC_SAMPLETIME_71CYCLES_5;
+            sConfig.Channel = ADC_CHANNEL_VBAT;
+            break;
+        case 18:
+            sConfig.SamplingTime = ADC_SAMPLETIME_71CYCLES_5;
+            sConfig.Channel = ADC_CHANNEL_VREFINT;
+            break;
+#else // STM32F373xC
         case 15:
             if ((ADCName)obj->handle.Instance == ADC_1) {
                 sConfig.Channel = ADC_CHANNEL_VOPAMP1;
@@ -230,6 +258,7 @@ uint16_t adc_read(analogin_t *obj)
             sConfig.SamplingTime = ADC_SAMPLETIME_181CYCLES_5;
             sConfig.Channel = ADC_CHANNEL_VREFINT;
             break;
+#endif // !STM32F373xC
         default:
             return 0;
     }
