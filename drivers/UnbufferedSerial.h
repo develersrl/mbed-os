@@ -159,6 +159,8 @@ public:
     using SerialBase::writeable;
     using SerialBase::format;
     using SerialBase::attach;
+    using SerialBase::enable_input;
+    using SerialBase::enable_output;
     using SerialBase::baud;
     using SerialBase::RxIrq;
     using SerialBase::TxIrq;
