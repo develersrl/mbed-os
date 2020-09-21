@@ -341,6 +341,8 @@ HAL_StatusTypeDef HAL_UART_Init(UART_HandleTypeDef *huart)
   CLEAR_BIT(huart->Instance->CR2, (USART_CR2_LINEN | USART_CR2_CLKEN));
   CLEAR_BIT(huart->Instance->CR3, (USART_CR3_SCEN | USART_CR3_HDSEL | USART_CR3_IREN));
 
+  HAL_RS485Ex_Init(huart, UART_DE_POLARITY_HIGH, 16, 16);
+
   /* Enable the Peripheral */
   __HAL_UART_ENABLE(huart);
 
