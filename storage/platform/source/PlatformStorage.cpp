@@ -21,19 +21,19 @@
 
 
 #if COMPONENT_SPIF
-#include "storage/blockdevice/COMPONENT_SPIF/SPIFBlockDevice.h"
+#include "SPIFBlockDevice.h"
 #endif
 
 #if COMPONENT_QSPIF
-#include "storage/blockdevice/COMPONENT_QSPIF/QSPIFBlockDevice.h"
+#include "QSPIFBlockDevice.h"
 #endif
 
 #if COMPONENT_DATAFLASH
-#include "storage/blockdevice/COMPONENT_DATAFLASH/DataFlashBlockDevice.h"
+#include "DataFlashBlockDevice.h"
 #endif
 
 #if COMPONENT_SD
-#include "storage/blockdevice/COMPONENT_SD/SDBlockDevice.h"
+#include "SDBlockDevice.h"
 
 #if (STATIC_PINMAP_READY)
 const spi_pinmap_t static_spi_pinmap = get_spi_pinmap(MBED_CONF_SD_SPI_MOSI, MBED_CONF_SD_SPI_MISO, MBED_CONF_SD_SPI_CLK, NC);
@@ -41,7 +41,7 @@ const spi_pinmap_t static_spi_pinmap = get_spi_pinmap(MBED_CONF_SD_SPI_MOSI, MBE
 #endif
 
 #if COMPONENT_FLASHIAP
-#include "storage/blockdevice/COMPONENT_FLASHIAP/FlashIAPBlockDevice.h"
+#include "FlashIAPBlockDevice.h"
 #endif
 
 using namespace mbed;
@@ -156,10 +156,17 @@ MBED_WEAK FileSystem *FileSystem::get_default_instance()
 
 #elif COMPONENT_FLASHIAP
 
+// To avoid alignment issues, initialize a filesystem if all sectors have the same size
+// OR the user has specified an address range
+#if MBED_CONF_TARGET_INTERNAL_FLASH_UNIFORM_SECTORS || \
+    (MBED_CONF_FLASHIAP_BLOCK_DEVICE_SIZE != 0) && (MBED_CONF_FLASHIAP_BLOCK_DEVICE_BASE_ADDRESS != 0xFFFFFFFF)
     static LittleFileSystem flash("flash", BlockDevice::get_default_instance());
     flash.set_as_default();
 
     return &flash;
+#else
+    return NULL;
+#endif
 
 #else
 
